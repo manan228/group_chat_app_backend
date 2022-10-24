@@ -29,3 +29,10 @@ exports.postUser = (req, res) => {
     }
   });
 };
+
+exports.postLogin = (req, res) => {
+
+  console.log(req.body)
+
+  res.json(`inside login backend`)
+}
