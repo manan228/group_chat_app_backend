@@ -1,6 +1,11 @@
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const User = require("../models/user");
+
+const generateAccessToken = (id) => {
+  return jwt.sign({ emailId: id }, "abc");
+};
 
 exports.postUser = (req, res) => {
   console.log(`inside get`, req.body);
@@ -30,9 +35,40 @@ exports.postUser = (req, res) => {
   });
 };
 
-exports.postLogin = (req, res) => {
+exports.postLogin = async (req, res) => {
+  // console.log(req.body)
+  const { email, password } = req.body;
 
-  console.log(req.body)
+  try {
+    const response = await User.findByPk(email);
 
-  res.json(`inside login backend`)
-}
+    if (!response) {
+      res.status(404).json({ msg: "User not found" });
+    } else {
+      const userPassword = response.dataValues.password;
+
+      bcrypt.compare(password, userPassword, (err, result) => {
+        console.log(`inside bcrypt compare`);
+        if (err) {
+          console.log(err);
+          console.log(`inside err`);
+          throw new Error("Something went wrong!!!");
+        }
+
+        if (result) {
+          res.json({
+            response,
+            token: generateAccessToken(response.dataValues.email),
+          });
+        } else {
+          res.status(401).json({ msg: "User not authorized" });
+        }
+      });
+    }
+  } catch (err) {
+    console.log(err);
+    res.json(err);
+  }
+
+  // res.json(`inside login backend`);
+};
