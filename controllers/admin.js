@@ -21,6 +21,7 @@ exports.postUser = (req, res) => {
           email,
           phone_no,
           password: hash,
+          isLogin: false,
         });
 
         console.log(response);
@@ -48,7 +49,7 @@ exports.postLogin = async (req, res) => {
     } else {
       const userPassword = response.dataValues.password;
 
-      bcrypt.compare(password, userPassword, (err, result) => {
+      bcrypt.compare(password, userPassword, async (err, result) => {
         console.log(`inside bcrypt compare`);
         if (err) {
           console.log(err);
@@ -57,6 +58,9 @@ exports.postLogin = async (req, res) => {
         }
 
         if (result) {
+          response.isLogin = true;
+
+          await response.save();
           res.json({
             response,
             token: generateAccessToken(response.dataValues.email),
@@ -98,8 +102,22 @@ exports.getAllMessages = async (req, res) => {
   try {
     const response = await Message.findAll();
 
-    console.log(response)
+    console.log(response);
     res.json({ msg: "get all messages api called", response });
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.getonLineUsers = async (req, res) => {
+  console.log(`inside online users`);
+
+  try {
+    const response = await User.findAll({ where: { isLogin: true } });
+
+    console.log(`inside online users try`);
+    console.log(response);
+    res.json(response);
   } catch (err) {
     console.log(err);
   }

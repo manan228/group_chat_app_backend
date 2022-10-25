@@ -17,4 +17,6 @@ router.post(
 
 router.get("/all-messages", adminController.getAllMessages);
 
+router.get("/online-users", adminController.getonLineUsers);
+
 module.exports = router;

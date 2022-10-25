@@ -26,6 +26,11 @@ const User = sequelize.define(
       type: Sequelize.STRING,
       allowNull: false,
     },
+
+    isLogin: {
+      type: Sequelize.BOOLEAN,
+      allowNull: false,
+    },
   },
 
   {
