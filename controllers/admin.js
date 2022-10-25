@@ -91,3 +91,16 @@ exports.postMessage = async (req, res) => {
 
   res.json(res.body);
 };
+
+exports.getAllMessages = async (req, res) => {
+  console.log(`inside get all messages`);
+
+  try {
+    const response = await Message.findAll();
+
+    console.log(response)
+    res.json({ msg: "get all messages api called", response });
+  } catch (err) {
+    console.log(err);
+  }
+};
