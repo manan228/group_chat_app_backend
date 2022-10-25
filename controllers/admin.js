@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const Message = require("../models/message");
 
 const User = require("../models/user");
 
@@ -71,4 +72,22 @@ exports.postLogin = async (req, res) => {
   }
 
   // res.json(`inside login backend`);
+};
+
+exports.postMessage = async (req, res) => {
+  console.log(`inside postMessage`);
+  console.log(req.body.message);
+
+  const userEmail = req.user.email;
+  const message = req.body.message;
+
+  try {
+    const response = await Message.create({ message, userEmail });
+
+    res.json({ msg: "message stored successfully" });
+  } catch (err) {
+    console.log(err);
+  }
+
+  res.json(res.body);
 };
