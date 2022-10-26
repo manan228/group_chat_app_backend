@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 const Message = require("../models/message");
 
 const User = require("../models/user");
@@ -99,9 +100,13 @@ exports.postMessage = async (req, res) => {
 exports.getAllMessages = async (req, res) => {
   console.log(`inside get all messages`);
 
-  try {
-    const response = await Message.findAll();
+  const { lastMessageId } = req.query;
 
+  console.log(typeof parseInt(lastMessageId));
+  try {
+    const response = await Message.findAll({where: {id: {[Op.gt]: lastMessageId}}});
+
+    console.log(`after fetching required data`)
     console.log(response);
     res.json({ msg: "get all messages api called", response });
   } catch (err) {
