@@ -4,14 +4,14 @@ const { Op } = require("sequelize");
 const Message = require("../models/message");
 
 const User = require("../models/user");
+const Group = require("../models/group");
+const UserGroup = require("../models/user-group");
 
 const generateAccessToken = (id) => {
   return jwt.sign({ emailId: id }, "abc");
 };
 
 exports.postUser = (req, res) => {
-  console.log(`inside get`, req.body);
-
   const { name: username, email, phone: phone_no, password } = req.body;
 
   bcrypt.hash(password, 10, async (err, hash) => {
@@ -25,8 +25,6 @@ exports.postUser = (req, res) => {
           isLogin: false,
         });
 
-        console.log(response);
-
         res.json("user created");
       } catch (err) {
         console.log(err);
@@ -39,7 +37,6 @@ exports.postUser = (req, res) => {
 };
 
 exports.postLogin = async (req, res) => {
-  // console.log(req.body)
   const { email, password } = req.body;
 
   try {
@@ -51,10 +48,8 @@ exports.postLogin = async (req, res) => {
       const userPassword = response.dataValues.password;
 
       bcrypt.compare(password, userPassword, async (err, result) => {
-        console.log(`inside bcrypt compare`);
         if (err) {
           console.log(err);
-          console.log(`inside err`);
           throw new Error("Something went wrong!!!");
         }
 
@@ -75,19 +70,18 @@ exports.postLogin = async (req, res) => {
     console.log(err);
     res.json(err);
   }
-
-  // res.json(`inside login backend`);
 };
 
 exports.postMessage = async (req, res) => {
-  console.log(`inside postMessage`);
-  console.log(req.body.message);
-
   const userEmail = req.user.email;
-  const message = req.body.message;
+  const { message, selectedGroup } = req.body;
 
   try {
-    const response = await Message.create({ message, userEmail });
+    const { id } = await Group.findOne({
+      where: { grp_name: selectedGroup },
+    });
+
+    const response = await Message.create({ message, userEmail, groupId: id });
 
     res.json({ msg: "message stored successfully" });
   } catch (err) {
@@ -98,16 +92,19 @@ exports.postMessage = async (req, res) => {
 };
 
 exports.getAllMessages = async (req, res) => {
-  console.log(`inside get all messages`);
+  const { lastMessageId, selectedGroup } = req.query;
 
-  const { lastMessageId } = req.query;
-
-  console.log(typeof parseInt(lastMessageId));
   try {
-    const response = await Message.findAll({where: {id: {[Op.gt]: lastMessageId}}});
+    const { id } = await Group.findOne({
+      where: { grp_name: selectedGroup },
+    });
 
-    console.log(`after fetching required data`)
-    console.log(response);
+    const response = await Message.findAll({
+      where: {
+        [Op.and]: [{ groupId: id }, { id: { [Op.gt]: lastMessageId } }],
+      },
+    });
+
     res.json({ msg: "get all messages api called", response });
   } catch (err) {
     console.log(err);
@@ -115,14 +112,72 @@ exports.getAllMessages = async (req, res) => {
 };
 
 exports.getonLineUsers = async (req, res) => {
-  console.log(`inside online users`);
-
   try {
     const response = await User.findAll({ where: { isLogin: true } });
 
-    console.log(`inside online users try`);
-    console.log(response);
     res.json(response);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const response = await User.findAll();
+
+    res.json(response);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.postGroupUsers = async (req, res) => {
+  const adminUser = req.user.email;
+  const { grpName: grp_name, userEmail } = req.body;
+
+  try {
+    const grpExist = await Group.findAll({ where: { grp_name } });
+
+    if (grpExist.length === 0) {
+      const response = await Group.create({ grp_name });
+
+      const response2 = await UserGroup.create({
+        userEmail: adminUser,
+        groupId: response.id,
+      });
+
+      const response1 = await UserGroup.create({
+        userEmail,
+        groupId: response.id,
+      });
+    } else {
+      const response1 = await UserGroup.create({
+        userEmail,
+        groupId: grpExist[0].id,
+      });
+    }
+
+    res.json({ msg: "user added successfully to grp" });
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.getGroups = async (req, res) => {
+  userEmail = req.user.email;
+
+  let groups = [];
+
+  try {
+    const response = await UserGroup.findAll({ where: { userEmail } });
+
+    for (let { groupId } of response) {
+      const { grp_name } = await Group.findByPk(groupId);
+
+      groups = [...groups, grp_name];
+    }
+
+    res.json(groups);
   } catch (err) {
     console.log(err);
   }
