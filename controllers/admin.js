@@ -1,8 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Op } = require("sequelize");
-const Message = require("../models/message");
 
+const Message = require("../models/message");
 const User = require("../models/user");
 const Group = require("../models/group");
 const UserGroup = require("../models/user-group");
@@ -144,16 +144,19 @@ exports.postGroupUsers = async (req, res) => {
       const response2 = await UserGroup.create({
         userEmail: adminUser,
         groupId: response.id,
+        admin: true,
       });
 
       const response1 = await UserGroup.create({
         userEmail,
         groupId: response.id,
+        admin: false,
       });
     } else {
       const response1 = await UserGroup.create({
         userEmail,
         groupId: grpExist[0].id,
+        admin: false,
       });
     }
 
@@ -178,6 +181,85 @@ exports.getGroups = async (req, res) => {
     }
 
     res.json(groups);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.getGroupUsers = async (req, res) => {
+  const { group } = req.params;
+
+  try {
+    const response = await Group.findAll({ where: { grp_name: group } });
+
+    console.log(response[0].id);
+    const groupId = response[0].id;
+
+    const response1 = await UserGroup.findAll({
+      where: { groupId },
+    });
+
+    res.json(response1);
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.makeAdmin = async (req, res) => {
+  const { id } = req.body;
+  const { email: userEmail } = req.user;
+
+  console.log(id, userEmail);
+
+  try {
+    const grpData = await UserGroup.findByPk(id);
+    console.log(grpData);
+
+    const isAdmin = await UserGroup.findAll({
+      where: {
+        [Op.and]: [{ groupId: grpData.groupId }, { admin: 1 }, { userEmail }],
+      },
+    });
+
+    console.log(`abcdefg`);
+    console.log(isAdmin);
+
+    if (isAdmin.length > 0) {
+      grpData.admin = true;
+
+      const response1 = await grpData.save();
+
+      res.json(response1);
+    } else {
+      res.status(401).json({ msg: "You are not Authorized" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+};
+
+exports.deleteGroupUser = async (req, res) => {
+  const { id } = req.params;
+  const { email: userEmail } = req.user;
+
+  console.log(id, userEmail);
+
+  try {
+    const { groupId } = await UserGroup.findByPk(id);
+
+    console.log(groupId);
+
+    const isAdmin = await UserGroup.findAll({
+      where: { [Op.and]: [{ groupId }, { admin: 1 }, { userEmail }] },
+    });
+
+    if (isAdmin.length > 0) {
+      const response = await UserGroup.destroy({ where: { id } });
+
+      res.json(response);
+    } else {
+      res.status(401).json({ msg: "You arre not Authorized" });
+    }
   } catch (err) {
     console.log(err);
   }

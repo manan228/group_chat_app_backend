@@ -33,4 +33,18 @@ router.get(
   adminController.getGroups
 );
 
+router.get("/get-users/:group", adminController.getGroupUsers);
+
+router.post(
+  "/make-admin",
+  userAuthentication.authenticate,
+  adminController.makeAdmin
+);
+
+router.delete(
+  "/delete-group-user/:id",
+  userAuthentication.authenticate,
+  adminController.deleteGroupUser
+);
+
 module.exports = router;
